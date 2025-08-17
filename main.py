@@ -56,60 +56,43 @@ def save_data(data):
             crypto_data_store[:] = crypto_data_store[-500:]
 
 def scrape_crypto_prices(symbols=None, limit=10):
-    try:
-        time.sleep(CONFIG["REQUEST_DELAY"])
-        url = "https://api.coingecko.com/api/v3/coins/markets"
-        params = {
-            "vs_currency": "usd",
-            "order": "market_cap_desc", 
-            "per_page": limit,
-            "page": 1
-        }
-        
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-        
-        response = requests.get(url, params=params, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        if not response.content:
-            raise Exception("Empty response from API")
+    time.sleep(CONFIG["REQUEST_DELAY"])
+    url = "https://api.coingecko.com/api/v3/coins/markets"
+    params = {
+        "vs_currency": "usd",
+        "order": "market_cap_desc", 
+        "per_page": limit,
+        "page": 1
+    }
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    
+    response = requests.get(url, params=params, headers=headers, timeout=10)
+    response.raise_for_status()
+    
+    data = response.json()
+    result = []
+    
+    symbol_list = symbols.split(",") if symbols else None
+    
+    for coin in data:
+        if symbol_list and coin['symbol'].upper() not in [s.upper().strip() for s in symbol_list]:
+            continue
             
-        data = response.json()
-        result = []
-        
-        symbol_list = symbols.split(",") if symbols else None
-        
-        for coin in data:
-            if symbol_list and coin['symbol'].upper() not in [s.upper().strip() for s in symbol_list]:
-                continue
-                
-            crypto_info = {
-                "symbol": coin['symbol'].upper(),
-                "name": coin['name'],
-                "price": coin['current_price'],
-                "market_cap": coin.get('market_cap'),
-                "volume_24h": coin.get('total_volume'),
-                "change_24h": coin.get('price_change_percentage_24h'),
-                "timestamp": datetime.now().isoformat()
-            }
-            result.append(crypto_info)
-        
-        return result
-        
-    except:
-        mock_data = [
-            {"symbol": "BTC", "name": "Bitcoin", "price": 118000, "market_cap": 2340000000000, "volume_24h": 28000000000, "change_24h": 2.5, "timestamp": datetime.now().isoformat()},
-            {"symbol": "ETH", "name": "Ethereum", "price": 4460, "market_cap": 536000000000, "volume_24h": 15000000000, "change_24h": 1.8, "timestamp": datetime.now().isoformat()},
-            {"symbol": "XRP", "name": "XRP", "price": 3.12, "market_cap": 180000000000, "volume_24h": 8000000000, "change_24h": -0.5, "timestamp": datetime.now().isoformat()}
-        ]
-        
-        if symbols:
-            symbol_list = [s.upper().strip() for s in symbols.split(",")]
-            return [d for d in mock_data if d["symbol"] in symbol_list]
-        
-        return mock_data[:limit]
+        crypto_info = {
+            "symbol": coin['symbol'].upper(),
+            "name": coin['name'],
+            "price": coin['current_price'],
+            "market_cap": coin.get('market_cap'),
+            "volume_24h": coin.get('total_volume'),
+            "change_24h": coin.get('price_change_percentage_24h'),
+            "timestamp": datetime.now().isoformat()
+        }
+        result.append(crypto_info)
+    
+    return result
 
 def scrape_crypto_news(limit=5):
     url = "https://www.coindesk.com/arc/outboundfeeds/rss/"
